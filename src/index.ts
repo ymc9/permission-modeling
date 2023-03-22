@@ -3,6 +3,8 @@ import express, { type Request } from 'express';
 import { ZenStackMiddleware } from '@zenstackhq/server/express';
 import { withPresets } from '@zenstackhq/runtime';
 
+// Let's use this project to collaborate
+
 const prisma = new PrismaClient();
 const app = express();
 

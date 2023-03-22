@@ -1,4 +1,4 @@
-import { Permission, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import express, { type Request } from 'express';
 import { ZenStackMiddleware } from '@zenstackhq/server/express';
 import { withPresets } from '@zenstackhq/runtime';

@@ -1,0 +1,122 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id String @id @default(cuid())
+    name String?
+    email String? @email @unique
+    emailVerified DateTime?
+    image String?
+    createdAt DateTime? @default(now())
+    updatedAt DateTime? @updatedAt
+    groups GroupUser[]
+    posts PostUser[]
+    postPermission UserPostPermission?
+}
+
+
+model Permission {
+    id String @id() @default(cuid())
+    name String
+    all Boolean @default(false)
+    create Boolean @default(false)
+    update Boolean @default(false)
+    read Boolean @default(false)
+    delete Boolean @default(false)
+
+    // ENTITY 'POST' PERMISSION RELATED TO A USER
+    userPostPermission UserPostPermission?
+    // ENTITY 'POST' PERMISSION RELATED TO A GROUP
+    groupPostPermission GroupPostPermission?
+    // PERMISSION RELATED TO A USER IN A POST
+    postUser PostUser?
+    // PERMISSION RELATED TO A GROUP IN A POST
+    postGroup PostGroup?
+
+    // PERMISSION RELATED TO USER IN A GROUP
+    groupUser GroupUser?
+}
+
+// ENTITY 'POST' PERMISSION RELATED TO USER
+model UserPostPermission {
+    id String @id() @default(cuid())
+    permission Permission @relation(fields: [permissionId], references: [id])
+    permissionId String @unique
+    user User @relation(fields: [userId], references: [id])
+    userId String @unique
+}
+
+// ENTITY 'POST' PERMISSION RELATED TO GROUP
+model GroupPostPermission {
+    id String @id() @default(cuid())
+    permission Permission @relation(fields: [permissionId], references: [id])
+    permissionId String @unique
+    group Group @relation(fields: [groupId], references: [id])
+    groupId String @unique
+}
+
+model Group {
+    id String @id() @default(cuid())
+    users GroupUser[]
+    posts PostGroup[]
+    postPermission GroupPostPermission?
+}
+
+model GroupUser {
+    id String @id() @default(cuid())
+    group Group @relation(fields: [groupId], references: [id])
+    groupId String
+    user User @relation(fields: [userId], references: [id])
+    userId String
+    permission Permission @relation(fields: [permissionId], references: [id])
+    permissionId String
+    @@unique([groupId, userId, permissionId])
+}
+
+model Post {
+    id String @id() @default(cuid())
+    title String
+    content String
+    groups PostGroup[]
+    users PostUser[]
+
+    // require login
+    @@deny('all', auth() == null)
+    @@allow('all', users?[user == auth() && user.permission.all] || groups?[group.postPermission.permission.all] || auth().postPermission.permission.all)
+    @@allow('create', users?[user == auth() && user.permission.create] || groups?[group.postPermission.permission.create] || auth().postPermission.permission.create)
+    @@allow('read', users?[user == auth() && user.permission.read] || groups?[group.postPermission.permission.read] || auth().postPermission.permission.read)
+    @@allow('update', users?[user == auth() && user.permission.update] || groups?[group.postPermission.permission.update] || auth().postPermission.permission.update)
+    @@allow('delete', users?[user == auth() && user.permission.delete] || groups?[group.postPermission.permission.delete] || auth().postPermission.permission.delete)
+}
+
+model PostGroup {
+    id String @id() @default(cuid())
+    group Group @relation(fields: [groupId], references: [id])
+    groupId String
+    post Post @relation(fields: [postId], references: [id])
+    postId String
+    permission Permission @relation(fields: [permissionId], references: [id])
+    permissionId String
+    @@unique([groupId, postId, permissionId])
+}
+
+model PostUser {
+    id String @id() @default(cuid())
+    post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+    postId String
+    user User @relation(fields: [userId], references: [id])
+    userId String
+    permission Permission @relation(fields: [permissionId], references: [id])
+    permissionId String
+    @@unique([postId, userId, permissionId])
+
+    // require login
+    @@deny('all', auth() == null)
+    @@allow('all', user == auth() && (user.postPermission.permission.all || permission.all))
+    @@allow('create', user == auth() && (user.postPermission.permission.create || permission.create))
+    @@allow('read', user == auth() && (user.postPermission.permission.read || permission.read))
+    @@allow('update', user == auth() && (user.postPermission.permission.update || permission.update))
+    @@allow('delete', user == auth() && (user.postPermission.permission.delete || permission.delete))
+}

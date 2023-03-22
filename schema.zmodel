@@ -1,0 +1,101 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Permission {
+  ALL
+  CREATE
+  READ
+  UPDATE
+  DELETE
+}
+
+/*
+ * User can be member of many groups, and can operate many posts.
+ */
+model User {
+  id String @id @default(cuid())
+  groups GroupUser[]
+  posts PostUser[]
+  postPermission Permission?
+}
+
+/*
+ * Group can have many users, and (its members) can operate many posts.
+ */
+model Group {
+  id String @id() @default(cuid())
+  users GroupUser[]
+  posts PostGroup[]
+  postPermission Permission?
+}
+
+/*
+ * User-Group join model, with permissions indicating what the user can do to the group
+ */
+model GroupUser {
+  id String @id() @default(cuid())
+  group Group @relation(fields: [groupId], references: [id])
+  groupId String
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  permission Permission
+  @@unique([groupId, userId, permission])
+
+  // current user can manage group members if he has ALL permission to the group
+  @@allow('all', group.users?[user == auth() && user.permission == ALL])
+}
+
+/*
+ * Post belongs to many users and many groups
+ */
+model Post {
+  id String @id() @default(cuid())
+  groups PostGroup[]
+  users PostUser[]
+
+  // require login
+  @@deny('all', auth() == null)
+
+  // current user has ALL permission to all posts
+  @@allow('all', auth().postPermission == ALL)
+
+  // current user has ALL permission to this post
+  @@allow('all', users?[user == auth() && user.permission == ALL])
+
+  // current user belongs to a group that has ALL permission to this post
+  @@allow('all', groups?[group.users?[user == auth()] && group.permission == ALL])
+}
+
+/*
+ * Group-Post join model, with permissions indicating what the group members can do to the post
+ */
+model PostGroup {
+  id String @id() @default(cuid())
+  group Group @relation(fields: [groupId], references: [id])
+  groupId String
+  post Post @relation(fields: [postId], references: [id])
+  postId String
+  permission Permission
+  @@unique([groupId, postId, permission])
+}
+
+/*
+ * User-Post join model, with permissions indicating what the user can do to the post
+ */
+model PostUser {
+  id String @id() @default(cuid())
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  permission Permission
+  @@unique([postId, userId, permission])
+
+  // require login
+  @@deny('all', auth() == null)
+
+  // current user can manage other user's permission to any post if he has ALL permission to all posts
+  @@allow('all', user == auth() && user.postPermission == ALL)
+}

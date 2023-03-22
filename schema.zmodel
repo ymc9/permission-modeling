@@ -3,6 +3,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Here's the simplified model
+//   - Permission is changed to enum so that using it doesn't require join models
+
 enum Permission {
   ALL
   CREATE
@@ -19,6 +26,9 @@ model User {
   groups GroupUser[]
   posts PostUser[]
   postPermission Permission?
+
+  // a synthesized field to facilitate access policies
+  groupPostPermission Permission? @ignore
 }
 
 /*
@@ -58,14 +68,17 @@ model Post {
   // require login
   @@deny('all', auth() == null)
 
-  // current user has ALL permission to all posts
+  // current user has global ALL permission to posts
   @@allow('all', auth().postPermission == ALL)
 
-  // current user has ALL permission to this post
+  // current user belongs to a group with global ALL permission to posts
+  @@allow('all', auth().groupPostPermission == ALL)
+
+  // current user is in the user list of this post and has ALL permission
   @@allow('all', users?[user == auth() && user.permission == ALL])
 
-  // current user belongs to a group that has ALL permission to this post
-  @@allow('all', groups?[group.users?[user == auth()] && group.permission == ALL])
+  // current user belongs to a group of this post that has ALL permission
+  @@allow('all', groups?[group.group.users?[user == auth()] && group.permission == ALL])
 }
 
 /*

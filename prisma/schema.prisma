@@ -8,6 +8,10 @@ datasource db {
     url=env("DATABASE_URL")
 }
 
+generator client {
+    provider = "prisma-client-js"
+}
+
 enum Permission {
     ALL
     CREATE
@@ -21,6 +25,7 @@ model User {
     groups GroupUser[]
     posts PostUser[]
     postPermission Permission?
+    groupPostPermission Permission? @ignore()
     zenstack_guard Boolean @default(true)
 }
 
@@ -48,8 +53,9 @@ model GroupUser {
 
 /// @@deny('all', auth() == null)
 /// @@allow('all', auth().postPermission == ALL)
+/// @@allow('all', auth().groupPostPermission == ALL)
 /// @@allow('all', users ? [user == auth() && user.permission == ALL])
-/// @@allow('all', groups ? [group.users ? [user == auth()] && group.permission == ALL])
+/// @@allow('all', groups ? [group.group.users ? [user == auth()] && group.permission == ALL])
 model Post {
     id String @id() @default(cuid())
     groups PostGroup[]

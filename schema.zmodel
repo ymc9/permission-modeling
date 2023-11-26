@@ -75,10 +75,10 @@ model Post {
   @@allow('all', auth().groupPostPermission == ALL)
 
   // current user is in the user list of this post and has ALL permission
-  @@allow('all', users?[user == auth() && user.permission == ALL])
+  @@allow('all', users?[user == auth() && user.postPermission == ALL])
 
   // current user belongs to a group of this post that has ALL permission
-  @@allow('all', groups?[group.group.users?[user == auth()] && group.permission == ALL])
+  @@allow('all', groups?[group.users?[user == auth()] && group.postPermission == ALL])
 }
 
 /*

@@ -84,11 +84,11 @@ model Post {
 
     // require login
     @@deny('all', auth() == null)
-    @@allow('all', users?[user == auth() && user.permission.all] || groups?[group.postPermission.permission.all] || auth().postPermission.permission.all)
-    @@allow('create', users?[user == auth() && user.permission.create] || groups?[group.postPermission.permission.create] || auth().postPermission.permission.create)
-    @@allow('read', users?[user == auth() && user.permission.read] || groups?[group.postPermission.permission.read] || auth().postPermission.permission.read)
-    @@allow('update', users?[user == auth() && user.permission.update] || groups?[group.postPermission.permission.update] || auth().postPermission.permission.update)
-    @@allow('delete', users?[user == auth() && user.permission.delete] || groups?[group.postPermission.permission.delete] || auth().postPermission.permission.delete)
+    @@allow('all', users?[user == auth() && permission.all] || groups?[group.postPermission.permission.all] || auth().postPermission.permission.all)
+    @@allow('create', users?[user == auth() && permission.create] || groups?[group.postPermission.permission.create] || auth().postPermission.permission.create)
+    @@allow('read', users?[user == auth() && permission.read] || groups?[group.postPermission.permission.read] || auth().postPermission.permission.read)
+    @@allow('update', users?[user == auth() && permission.update] || groups?[group.postPermission.permission.update] || auth().postPermission.permission.update)
+    @@allow('delete', users?[user == auth() && permission.delete] || groups?[group.postPermission.permission.delete] || auth().postPermission.permission.delete)
 }
 
 model PostGroup {
